@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>GASTO DE COMPROBACIONES</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --rojo:#C10230;--gris:#F4F4F4;--azul:#0071C1;--verde:#00B050;
+  --side-w:220px;--side-bg:#333F48;--side-grp:#263038;--side-txt:#ccc;
+}
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--gris);margin:0;display:flex;flex-direction:column;min-height:100vh}
+.header-bar{display:flex;align-items:stretch;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.header-logo{width:var(--side-w);background:#fefefe;display:flex;align-items:center;justify-content:center;padding:10px 16px;flex-shrink:0}
+.header-logo img{height:42px;object-fit:contain;width:100%}
+.header-title{flex:1;background:#E4002B;color:#fff;display:flex;align-items:center;justify-content:center;padding:14px 24px}
+.header-title h2{margin:0;font-size:16px;letter-spacing:.5px}
+.app-body{display:flex;flex:1}
+.sidebar{width:var(--side-w);background:var(--side-bg);min-height:calc(100vh - 52px);flex-shrink:0;overflow-y:auto}
+.nav-group{border-bottom:1px solid #3a4a55}
+.nav-group-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--side-grp);user-select:none;transition:background .15s}
+.nav-group-header:hover{background:#3a4a55}
+.nav-group-header .arrow{font-size:9px;transition:transform .2s;flex-shrink:0;margin-left:6px}
+.nav-group-header.open .arrow{transform:rotate(90deg)}
+.nav-group-header.open{color:#E4002B}
+.nav-children{display:none}
+.nav-children.open{display:block}
+.tab-btn{display:block;width:100%;padding:10px 16px 10px 22px;cursor:pointer;border:none;border-left:3px solid transparent;background:transparent;color:var(--side-txt);font-size:10.5px;font-weight:600;text-align:left;line-height:1.4;transition:background .15s,color .15s,border-color .15s}
+.tab-btn:hover{background:#3e4d58;color:#fff}
+.tab-btn.active{background:rgba(193,2,48,.18)!important;color:#fff!important;border-left-color:var(--rojo)!important}
+.content-area{flex:1;padding:24px;overflow-x:hidden}
+.card{background:#fff;padding:25px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,.12)}
+.filters-wrap{background:#f9f9f9;padding:7px;border-radius:8px;margin-bottom:10px;border:1px solid #eee;display:flex;flex-direction:column;gap:5px}
+.filters-row{display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end}
+.filters-row+.filters-row{padding-top:5px;border-top:1px solid #e0e0e0}
+.f-item{display:flex;flex-direction:row;align-items:center;gap:4px;position:relative}
+.f-item label{font-size:8px;font-weight:700;color:#666;white-space:nowrap}
+.multiselect{padding:1px 5px;border-radius:3px;border:1px solid #ccc;font-size:9px;height:20px;cursor:pointer;background:#fff;min-width:90px;max-width:140px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dropdown-content{display:none;position:absolute;top:100%;left:0;background:#fff;border:1px solid #ccc;z-index:200;max-height:220px;overflow-y:auto;box-shadow:0 4px 8px rgba(0,0,0,.12);padding:4px;min-width:150px;border-radius:3px}
+.dropdown-content label{display:flex;align-items:center;gap:6px;padding:4px 5px;cursor:pointer;font-weight:400;font-size:10px;color:#333;white-space:nowrap}
+.dropdown-content.open{display:block}
+input[type="date"]{padding:1px 3px;border-radius:3px;border:1px solid #ccc;font-size:9px;height:20px}
+.btn-clear{background:var(--rojo);color:#fff;border:none;padding:2px 10px;cursor:pointer;border-radius:3px;font-size:9px;font-weight:700;height:20px}
+
+/* KPI Cards */
+.kpi-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.kpi-card{flex:1;min-width:140px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.kpi-label{font-size:9.5px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.kpi-value{font-size:20px;font-weight:800;color:#222;line-height:1.1}
+.kpi-sub{font-size:9.5px;color:#888;margin-top:2px}
+.kpi-delta.up{color:#00B050}
+.kpi-delta.down{color:#C10230}
+.kpi-delta.flat{color:#888}
+
+/* Chart title */
+.chart-title{display:flex;gap:8px;align-items:center;margin:6px 0 8px 0;flex-wrap:wrap}
+.chart-title span{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;color:#fff}
+.ct-dash{background:#333F48}
+.ct-zone{background:#0071C1}
+.ct-info{background:#C10230}
+
+/* Chart */
+.chart-container{position:relative;height:380px;margin-bottom:16px}
+
+/* Tabla */
+.tabla-wrap{background:#fff;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-top:10px}
+.tabla-toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f5f5f5;border-bottom:1px solid #e5e5e5}
+.tabla-toolbar span{font-size:12px;font-weight:700;color:#333}
+.btn-dl{background:#227447;color:#fff;border:none;padding:5px 12px;cursor:pointer;border-radius:4px;font-size:10px;font-weight:700}
+.btn-dl:hover{background:#1a5a37}
+.tabla-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+table th{background:#333F48;color:#fff;padding:8px 10px;text-align:center;font-weight:700;font-size:11px;position:sticky;top:0}
+table td{padding:7px 10px;border-bottom:1px solid #eee;font-size:12px}
+table tbody tr:hover{background:#f9f9f9}
+table td.col-label{font-weight:700;color:#333;text-align:left;background:#fafafa}
+table td.col-val{text-align:center;font-weight:600;color:#333}
+table tr.total-row td{background:#333F48!important;color:#fff!important;font-weight:800}
+.vista{display:none}
+.vista.active{display:block}
+</style>
+</head>
+<body>
+
+<div class="header-bar">
+  <div class="header-logo">
+    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 42'><rect width='200' height='42' fill='%23fff'/><text x='100' y='28' text-anchor='middle' font-family='Arial' font-weight='bold' font-size='16' fill='%23C10230'>SENDA CITI</text></svg>" alt="Senda Citi">
+  </div>
+  <div class="header-title"><h2>GASTO DE COMPROBACIONES</h2></div>
+</div>
+
+<div class="app-body">
+  <nav class="sidebar">
+    <div class="nav-group" id="grp1">
+      <div class="nav-group-header open" onclick="toggleGroup('grp1')">
+        <span>GASTOS</span><span class="arrow">&#9654;</span>
+      </div>
+      <div class="nav-children open" id="children-grp1">
+        <button class="tab-btn active" onclick="cambiarVista('comprobaciones')">Gasto de Comprobaciones</button>
+        <button class="tab-btn" onclick="cambiarVista('divisiones')">Gasto de Divisiones</button>
+        <button class="tab-btn" onclick="cambiarVista('componentes')">Gasto de Componentes</button>
+        <button class="tab-btn" onclick="cambiarVista('jefes')">Gasto de Jefes de Taller</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="content-area">
+    <div class="card">
+
+      <div id="uploadArea">
+        <div id="autoLoadMsg" style="color:#555;font-size:13px;margin-bottom:12px;">⏳ Cargando datos automáticamente...</div>
+        <div id="manualLoad" style="display:none;">
+          <p style="color:#c00;font-size:13px;">No se pudo cargar el archivo automáticamente.<br>Cárguelo manualmente:</p>
+          <input type="file" id="fileInput" accept=".xlsx">
+        </div>
+      </div>
+
+      <div id="mainUI" style="display:none;">
+
+        <!-- FILTROS -->
+        <div class="filters-wrap">
+          <div class="filters-row">
+            <div class="f-item"><label>AÑO</label><div class="multiselect" id="msANO">Todos...</div><div class="dropdown-content" id="optsANO"></div></div>
+            <div class="f-item"><label>MES</label><div class="multiselect" id="msMES">Todos...</div><div class="dropdown-content" id="optsMES"></div></div>
+            <div class="f-item"><label>FECHA INICIO</label><input type="date" id="dStart" onchange="handleFilterChange()"></div>
+            <div class="f-item"><label>FECHA FIN</label><input type="date" id="dEnd" onchange="handleFilterChange()"></div>
+          </div>
+          <div class="filters-row">
+            <div class="f-item"><label>ZONA</label><div class="multiselect" id="msZONA">Todos...</div><div class="dropdown-content" id="optsZONA"></div></div>
+            <div class="f-item"><label>DIVISIÓN</label><div class="multiselect" id="msDIVISION">Todos...</div><div class="dropdown-content" id="optsDIVISION"></div></div>
+            <div class="f-item"><label>ECONÓMICO</label><div class="multiselect" id="msECONOMICO">Todos...</div><div class="dropdown-content" id="optsECONOMICO"></div></div>
+          </div>
+          <div class="filters-row">
+            <div class="f-item"><label>JEFE DE TALLER</label><div class="multiselect" id="msJEFE">Todos...</div><div class="dropdown-content" id="optsJEFE"></div></div>
+            <div class="f-item"><label>CLASIFICACIÓN</label><div class="multiselect" id="msCLASIFICACION">Todos...</div><div class="dropdown-content" id="optsCLASIFICACION"></div></div>
+            <div class="f-item"><label>SISTEMA</label><div class="multiselect" id="msSISTEMA">Todos...</div><div class="dropdown-content" id="optsSISTEMA"></div></div>
+            <div class="f-item"><label>COMPONENTE</label><div class="multiselect" id="msCOMPONENTE">Todos...</div><div class="dropdown-content" id="optsCOMPONENTE"></div></div>
+            <button class="btn-clear" onclick="resetAll()">LIMPIAR FILTROS</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-row" id="kpiRow">
+          <div class="kpi-card"><div class="kpi-label">Gasto del período</div><div class="kpi-value" id="kpi1">—</div><div class="kpi-sub" id="kpi1Sub"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Variación vs año anterior</div><div class="kpi-value" id="kpi2">—</div><div class="kpi-sub" id="kpi2Sub"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Año anterior mismo período</div><div class="kpi-value" id="kpi3">—</div><div class="kpi-sub" id="kpi3Sub"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Máximo del período</div><div class="kpi-value" id="kpi4">—</div><div class="kpi-sub" id="kpi4Sub"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Mínimo del período</div><div class="kpi-value" id="kpi5">—</div><div class="kpi-sub" id="kpi5Sub"></div></div>
+        </div>
+
+        <div class="chart-title">
+          <span class="ct-dash" id="ctDash">GASTO DE COMPROBACIONES</span>
+          <span class="ct-zone" id="ctZone">Todas las zonas</span>
+          <span class="ct-info" id="ctInfo">—</span>
+        </div>
+
+        <!-- VISTA 1: COMPROBACIONES -->
+        <div class="vista active" id="v-comprobaciones">
+          <div class="chart-container"><canvas id="chartComp"></canvas></div>
+          <div class="tabla-wrap">
+            <div class="tabla-toolbar">
+              <span>Gasto por Mes (meses en filas, años en columnas)</span>
+              <button class="btn-dl" onclick="descargarCSV('tblComp')">&#11015; Descargar Excel</button>
+            </div>
+            <div class="tabla-scroll"><table id="tblComp"><thead id="tblCompHead"></thead><tbody id="tblCompBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- VISTA 2: DIVISIONES -->
+        <div class="vista" id="v-divisiones">
+          <div class="chart-container"><canvas id="chartDiv"></canvas></div>
+          <div class="tabla-wrap">
+            <div class="tabla-toolbar">
+              <span>Gasto por División (divisiones en filas, años en columnas)</span>
+              <button class="btn-dl" onclick="descargarCSV('tblDiv')">&#11015; Descargar Excel</button>
+            </div>
+            <div class="tabla-scroll"><table id="tblDiv"><thead id="tblDivHead"></thead><tbody id="tblDivBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- VISTA 3: COMPONENTES -->
+        <div class="vista" id="v-componentes">
+          <div class="tabla-wrap">
+            <div class="tabla-toolbar">
+              <span>Gasto por Componente — Año más reciente (ordenado mayor a menor)</span>
+              <button class="btn-dl" onclick="descargarCSV('tblCmp')">&#11015; Descargar Excel</button>
+            </div>
+            <div class="tabla-scroll"><table id="tblCmp"><thead id="tblCmpHead"></thead><tbody id="tblCmpBody"></tbody></table></div>
+          </div>
+        </div>
+
+        <!-- VISTA 4: JEFES DE TALLER -->
+        <div class="vista" id="v-jefes">
+          <div class="chart-container"><canvas id="chartJef"></canvas></div>
+          <div class="tabla-wrap">
+            <div class="tabla-toolbar">
+              <span>Gasto por Jefe de Taller (jefes en filas, años en columnas)</span>
+              <button class="btn-dl" onclick="descargarCSV('tblJef')">&#11015; Descargar Excel</button>
+            </div>
+            <div class="tabla-scroll"><table id="tblJef"><thead id="tblJefHead"></thead><tbody id="tblJefBody"></tbody></table></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                       CONFIGURACIÓN                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const EXCEL_URL = 'gastocomprobaciones.xlsx';
+const SHEET_NAME = 'Hoja1';
+const SISTEMA_FILTRO = 'COMPROBACIONES DE GASTOS';
+
+const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const MESES_CORTOS = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const FILTER_FIELDS = ['ANO','MES','ZONA','DIVISION','ECONOMICO','JEFE','CLASIFICACION','SISTEMA','COMPONENTE'];
+
+// ── Estado global ──
+let rawData = [];
+let currentView = 'comprobaciones';
+let charts = { comp:null, div:null, jef:null };
+let renderTimer = null;
+let filters = { ...Object.fromEntries(FILTER_FIELDS.map(f=>[f,[]])), sd:'', ed:'' };
+
+// ── Helpers ──
+const $ = id => document.getElementById(id);
+const fmtDate = s => { if(!s) return ''; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; };
+const fmtPesos = v => '$' + Math.round(v||0).toLocaleString('es-MX');
+const fmtCompact = v => {
+  const n = Math.abs(v||0);
+  if(n>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
+  if(n>=1e3) return '$'+(v/1e3).toFixed(0)+'K';
+  return '$'+Math.round(v||0);
+};
+
+function makeDelta(pct){
+  if(!isFinite(pct)) pct=0;
+  const arrow = pct>0?'▲':pct<0?'▼':'●';
+  const cls = pct>0?'up':pct<0?'down':'flat';
+  return `<span class="kpi-delta ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}%</span>`;
+}
+
+function hexRgba(hex,a){
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ── Sidebar ──
+function toggleGroup(id){
+  const h=document.querySelector(`[onclick="toggleGroup('${id}')"]`);
+  const c=$(`children-${id}`);
+  if(h&&c){ h.classList.toggle('open'); c.classList.toggle('open'); }
+}
+
+function cambiarVista(v){
+  currentView=v;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const idx={comprobaciones:0,divisiones:1,componentes:2,jefes:3}[v];
+  document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+  document.querySelectorAll('.vista').forEach(el=>el.classList.remove('active'));
+  $('v-'+v).classList.add('active');
+  render();
+}
+
+// ── Dropdowns ──
+document.addEventListener('click', e=>{
+  if(e.target.type==='checkbox'||e.target.tagName==='LABEL') return;
+  const inside=e.target.closest('.f-item');
+  document.querySelectorAll('.dropdown-content').forEach(d=>{
+    if(!inside||!inside.contains(d)) d.classList.remove('open');
+  });
+});
+
+// ── Carga Excel ──
+function procesarExcel(buf){
+  const wb = XLSX.read(buf,{type:'array',cellDates:true});
+  const sheet = wb.Sheets[SHEET_NAME] || wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(sheet);
+
+  // Normalizar y filtrar solo COMPROBACIONES DE GASTOS
+  rawData = raw.map(r=>{
+    const n={};
+    for(const k in r) n[k.trim().toUpperCase()] = r[k];
+    return n;
+  }).filter(r => String(r['SISTEMA']||'').trim().toUpperCase() === SISTEMA_FILTRO);
+
+  // Enriquecer con año y mes desde FECHA CONTABLE
+  rawData.forEach(r=>{
+    const fc = r['FECHA CONTABLE'];
+    let d = null;
+    if(fc instanceof Date) d = fc;
+    else if(fc) d = new Date(fc);
+    if(d && !isNaN(d)){
+      r._ano = d.getFullYear();
+      r._mes = d.getMonth()+1;
+      r._ts  = d.getTime();
+    } else {
+      r._ano = null; r._mes = null; r._ts = null;
+    }
+    r._importe = Number(r['IMPORTE']||0);
+    r._jefe = String(r['JEFE DE TALLER']||'').trim();
+    r._clasif = String(r['CLASIFICACION']||'').trim();
+    r._sistema = String(r['SISTEMA']||'').trim();
+    r._comp = String(r['COMPONENTE']||'').trim();
+    r._div = String(r['DIVISION']||'').trim();
+    r._zona = String(r['ZONA']||'').trim();
+    r._eco = String(r['ECONOMICO']||'').trim();
+  });
+
+  $('mainUI').style.display='block';
+  $('uploadArea').style.display='none';
+  initDates();
+  buildFilters();
+  render();
+
+  document.querySelectorAll('.multiselect').forEach(ms=>{
+    ms.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      const dd=ms.nextElementSibling, wasOpen=dd.classList.contains('open');
+      document.querySelectorAll('.dropdown-content').forEach(d=>d.classList.remove('open'));
+      if(!wasOpen) dd.classList.add('open');
+    });
+  });
+}
+
+window.addEventListener('load',()=>{
+  fetch(EXCEL_URL+'?v='+Date.now(),{cache:'no-store'})
+    .then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(procesarExcel)
+    .catch(()=>{ $('autoLoadMsg').style.display='none'; $('manualLoad').style.display='block'; });
+});
+
+document.addEventListener('change',e=>{
+  if(e.target.id!=='fileInput') return;
+  const reader=new FileReader();
+  reader.onload=ev=>procesarExcel(ev.target.result);
+  reader.readAsArrayBuffer(e.target.files[0]);
+});
+
+// ── Inicialización ──
+function initDates(){
+  const dates = rawData.map(r=>r._ts).filter(t=>t).sort((a,b)=>a-b);
+  if(!dates.length) return;
+  const last = new Date(dates[dates.length-1]);
+  const first = new Date(dates[0]);
+  filters.sd = first.toISOString().split('T')[0];
+  filters.ed = last.toISOString().split('T')[0];
+  updateUIFilters();
+}
+
+function buildFilters(){
+  const fieldMap = {
+    ANO:           r=>r._ano ? String(r._ano) : null,
+    MES:           r=>r._mes ? MESES[r._mes-1] : null,
+    ZONA:          r=>r._zona||null,
+    DIVISION:      r=>r._div||null,
+    ECONOMICO:     r=>r._eco||null,
+    JEFE:          r=>r._jefe||null,
+    CLASIFICACION: r=>r._clasif||null,
+    SISTEMA:       r=>r._sistema||null,
+    COMPONENTE:    r=>r._comp||null
+  };
+  FILTER_FIELDS.forEach(field=>{
+    const cont = $('opts'+field); if(!cont) return;
+    const getter = fieldMap[field];
+    let opts = [...new Set(rawData.map(getter))].filter(v=>v&&v!=='null');
+    if(field==='MES') opts.sort((a,b)=>MESES.indexOf(a)-MESES.indexOf(b));
+    else if(field==='ANO') opts.sort((a,b)=>Number(a)-Number(b));
+    else opts.sort();
+    cont.innerHTML = opts.map(o=>
+      `<label><input type="checkbox" value="${String(o).replace(/"/g,'&quot;')}" onclick="handleFilterChange('${field}')"> ${o}</label>`
+    ).join('');
+  });
+}
+
+function updateUIFilters(){
+  if($('dStart')) $('dStart').value = filters.sd||'';
+  if($('dEnd'))   $('dEnd').value   = filters.ed||'';
+  FILTER_FIELDS.forEach(field=>{
+    if(!$('opts'+field)) return;
+    const sel = new Set(filters[field]);
+    document.querySelectorAll(`#opts${field} input`).forEach(cb=>cb.checked=sel.has(cb.value));
+    const disp = filters[field].length ? filters[field].join(', ') : 'Todos...';
+    $('ms'+field).innerText = disp;
+  });
+}
+
+function handleFilterChange(field){
+  if(field){
+    const cont = $('opts'+field);
+    if(cont) filters[field] = Array.from(cont.querySelectorAll('input:checked')).map(i=>i.value);
+    $('ms'+field).innerText = filters[field].length ? filters[field].join(', ') : 'Todos...';
+  }
+  if($('dStart')) filters.sd = $('dStart').value;
+  if($('dEnd'))   filters.ed = $('dEnd').value;
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 60);
+}
+
+function resetAll(){
+  FILTER_FIELDS.forEach(f=>filters[f]=[]);
+  initDates();
+  updateUIFilters();
+  render();
+}
+
+// ── Filtrado de datos (aplica todos los filtros excepto los indicados) ──
+function applyFilters(data, except=[]){
+  const f = filters;
+  const useAno = !except.includes('ANO')  && f.ANO.length>0;
+  const useMes = !except.includes('MES')  && f.MES.length>0;
+  const useZon = !except.includes('ZONA') && f.ZONA.length>0;
+  const useDiv = !except.includes('DIVISION') && f.DIVISION.length>0;
+  const useEco = !except.includes('ECONOMICO') && f.ECONOMICO.length>0;
+  const useJef = !except.includes('JEFE') && f.JEFE.length>0;
+  const useCla = !except.includes('CLASIFICACION') && f.CLASIFICACION.length>0;
+  const useSis = !except.includes('SISTEMA') && f.SISTEMA.length>0;
+  const useCom = !except.includes('COMPONENTE') && f.COMPONENTE.length>0;
+  const useDate = !except.includes('DATE');
+  const sdTs = useDate && f.sd ? new Date(f.sd+'T00:00:00').getTime() : 0;
+  const edTs = useDate && f.ed ? new Date(f.ed+'T23:59:59').getTime() : Infinity;
+
+  const setAno = new Set(f.ANO);
+  const setMes = new Set(f.MES);
+  const setZon = new Set(f.ZONA);
+  const setDiv = new Set(f.DIVISION);
+  const setEco = new Set(f.ECONOMICO);
+  const setJef = new Set(f.JEFE);
+  const setCla = new Set(f.CLASIFICACION);
+  const setSis = new Set(f.SISTEMA);
+  const setCom = new Set(f.COMPONENTE);
+
+  return data.filter(r=>{
+    if(useDate && r._ts!=null && (r._ts<sdTs||r._ts>edTs)) return false;
+    if(useAno && !setAno.has(String(r._ano))) return false;
+    if(useMes && !setMes.has(MESES[r._mes-1])) return false;
+    if(useZon && !setZon.has(r._zona)) return false;
+    if(useDiv && !setDiv.has(r._div)) return false;
+    if(useEco && !setEco.has(r._eco)) return false;
+    if(useJef && !setJef.has(r._jefe)) return false;
+    if(useCla && !setCla.has(r._clasif)) return false;
+    if(useSis && !setSis.has(r._sistema)) return false;
+    if(useCom && !setCom.has(r._comp)) return false;
+    return true;
+  });
+}
+
+// ── Plugin inline para etiquetas sobre barras apiladas ──
+const stackedTotalsPlugin = {
+  id: 'stackedTotals',
+  afterDatasetsDraw(chart){
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.textAlign='center';
+    const labels = chart.data.labels;
+    labels.forEach((_,i)=>{
+      // suma de barras en ese índice
+      let total = 0;
+      let topBar = null;
+      chart.data.datasets.forEach((ds,di)=>{
+        if(ds.type!=='bar') return;
+        const v = ds.data[i]; if(!(v>0)) return;
+        const meta = chart.getDatasetMeta(di);
+        const el = meta.data[i];
+        total += v;
+        // barra superior (la de menor y)
+        if(!topBar || el.y < topBar.y) topBar = el;
+        // etiqueta dentro de cada segmento
+        if(el && el.height > 14){
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.fillText(fmtCompact(v), el.x, el.y + el.height/2 + 3);
+        }
+      });
+      if(topBar && total>0){
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(fmtCompact(total), topBar.x, topBar.y - 6);
+      }
+    });
+    ctx.restore();
+  }
+};
+
+// ── Construcción de chart combinado (barras año actual + área año anterior) ──
+function destroyChart(key){
+  if(charts[key]){ charts[key].destroy(); charts[key]=null; }
+}
+
+function recreateCanvas(parentSelector, canvasId){
+  const cont = document.querySelector(parentSelector);
+  if(!cont) return null;
+  const old = cont.querySelector('canvas');
+  if(old) old.remove();
+  const cv = document.createElement('canvas');
+  cv.id = canvasId;
+  cont.appendChild(cv);
+  return cv;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    VISTA 1: COMPROBACIONES                       ║
+// ║   Gráfica: gasto mensual (meses eje X) barras año reciente       ║
+// ║   + área año anterior. Tabla: meses × años.                      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderComprobaciones(){
+  // Tabla: todos los años disponibles, respetando filtros excepto AÑO
+  const dataAll = applyFilters(rawData, ['ANO']);
+  const years = [...new Set(dataAll.map(r=>r._ano).filter(a=>a))].sort((a,b)=>a-b);
+
+  // Matriz mes × año
+  const mat = {}; // mat[mes][ano] = suma
+  for(let m=1; m<=12; m++){ mat[m] = {}; years.forEach(y=>mat[m][y]=0); }
+  dataAll.forEach(r=>{
+    if(r._mes && r._ano!=null) mat[r._mes][r._ano] = (mat[r._mes][r._ano]||0) + r._importe;
+  });
+
+  // === Gráfica ===
+  // Si el filtro AÑO tiene selección: año reciente = máximo seleccionado
+  // Si no: año reciente = máximo de los disponibles
+  let yearCurrent;
+  if(filters.ANO.length>0){
+    yearCurrent = Math.max(...filters.ANO.map(Number));
+  } else {
+    yearCurrent = years[years.length-1];
+  }
+  const yearPrev = yearCurrent - 1;
+
+  const labels = MESES_CORTOS;
+  const dataCurr = [];
+  const dataPrev = [];
+  for(let m=1; m<=12; m++){
+    dataCurr.push(mat[m][yearCurrent] || 0);
+    dataPrev.push(mat[m][yearPrev] || 0);
+  }
+
+  const datasets = [];
+  // Barras (año actual) — orden 0 para que queden encima
+  datasets.push({
+    type:'bar', label:`Año ${yearCurrent}`,
+    data: dataCurr, backgroundColor:'#C10230', stack:'s1', order:0
+  });
+  // Área (año anterior) — orden 1 para que quede detrás, sin bordes ni puntos, líneas rectas
+  if(years.includes(yearPrev)){
+    datasets.push({
+      type:'line', label:`Año ${yearPrev}`,
+      data: dataPrev,
+      backgroundColor:'rgba(128,128,128,0.35)',
+      borderColor:'rgba(128,128,128,0)',
+      borderWidth:0,
+      pointRadius:0, pointHoverRadius:0,
+      fill:true, tension:0, spanGaps:false, order:1
+    });
+  }
+
+  destroyChart('comp');
+  const cv = recreateCanvas('#v-comprobaciones .chart-container','chartComp');
+  if(!cv) return;
+
+  charts.comp = new Chart(cv,{
+    data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{stacked:true, grid:{display:false}},
+        y:{stacked:true, grid:{display:false}, beginAtZero:true,
+           ticks:{callback:v=>fmtCompact(v)}}
+      },
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{mode:'index', intersect:false, callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtPesos(ctx.raw)}`}}
+      }
+    },
+    plugins:[stackedTotalsPlugin]
+  });
+
+  // === Tabla: meses en filas, años en columnas ===
+  let thead = '<tr><th style="min-width:120px">MES</th>';
+  years.forEach(y=>thead+=`<th>${y}</th>`);
+  thead+='<th>TOTAL</th></tr>';
+  $('tblCompHead').innerHTML = thead;
+
+  let body = '';
+  const totalsByYear = {}; years.forEach(y=>totalsByYear[y]=0);
+  let grand = 0;
+  for(let m=1; m<=12; m++){
+    body += `<tr><td class="col-label">${MESES[m-1]}</td>`;
+    let rowTot = 0;
+    years.forEach(y=>{
+      const v = mat[m][y]||0;
+      totalsByYear[y] += v;
+      rowTot += v;
+      body += `<td class="col-val">${v>0?fmtPesos(v):'-'}</td>`;
+    });
+    grand += rowTot;
+    body += `<td class="col-val" style="font-weight:800">${rowTot>0?fmtPesos(rowTot):'-'}</td></tr>`;
+  }
+  body += `<tr class="total-row"><td>TOTAL</td>`;
+  years.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
+  body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
+  $('tblCompBody').innerHTML = body;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    VISTA 2: DIVISIONES                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderDivisiones(){
+  const dataAll = applyFilters(rawData, ['ANO']);
+  const years = [...new Set(dataAll.map(r=>r._ano).filter(a=>a))].sort((a,b)=>a-b);
+  const divs = [...new Set(dataAll.map(r=>r._div).filter(d=>d))].sort();
+
+  // Matriz div × año
+  const mat = {};
+  divs.forEach(d=>{ mat[d]={}; years.forEach(y=>mat[d][y]=0); });
+  dataAll.forEach(r=>{
+    if(r._div && r._ano!=null) mat[r._div][r._ano] = (mat[r._div][r._ano]||0) + r._importe;
+  });
+
+  // Ordenar divisiones por total descendente
+  const sortedDivs = divs.slice().sort((a,b)=>{
+    const sa = years.reduce((s,y)=>s+(mat[a][y]||0),0);
+    const sb = years.reduce((s,y)=>s+(mat[b][y]||0),0);
+    return sb - sa;
+  });
+
+  // Año actual / anterior
+  let yearCurrent;
+  if(filters.ANO.length>0) yearCurrent = Math.max(...filters.ANO.map(Number));
+  else yearCurrent = years[years.length-1];
+  const yearPrev = yearCurrent - 1;
+
+  const labels = sortedDivs;
+  const dataCurr = sortedDivs.map(d=>mat[d][yearCurrent]||0);
+  const dataPrev = sortedDivs.map(d=>mat[d][yearPrev]||0);
+
+  const datasets=[];
+  datasets.push({
+    type:'bar', label:`Año ${yearCurrent}`,
+    data:dataCurr, backgroundColor:'#C10230', stack:'s1', order:0
+  });
+  if(years.includes(yearPrev)){
+    datasets.push({
+      type:'line', label:`Año ${yearPrev}`,
+      data:dataPrev,
+      backgroundColor:'rgba(128,128,128,0.35)',
+      borderColor:'rgba(128,128,128,0)',
+      borderWidth:0, pointRadius:0, pointHoverRadius:0,
+      fill:true, tension:0, spanGaps:false, order:1
+    });
+  }
+
+  destroyChart('div');
+  const cv = recreateCanvas('#v-divisiones .chart-container','chartDiv');
+  if(!cv) return;
+
+  charts.div = new Chart(cv,{
+    data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{stacked:true, grid:{display:false}, ticks:{minRotation:45}},
+        y:{stacked:true, grid:{display:false}, beginAtZero:true,
+           ticks:{callback:v=>fmtCompact(v)}}
+      },
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{mode:'index', intersect:false, callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtPesos(ctx.raw)}`}}
+      }
+    },
+    plugins:[stackedTotalsPlugin]
+  });
+
+  // Tabla div × años
+  let thead = '<tr><th style="min-width:180px">DIVISIÓN</th>';
+  years.forEach(y=>thead+=`<th>${y}</th>`);
+  thead+='<th>TOTAL</th></tr>';
+  $('tblDivHead').innerHTML = thead;
+
+  let body='';
+  const totalsByYear={}; years.forEach(y=>totalsByYear[y]=0);
+  let grand=0;
+  sortedDivs.forEach(d=>{
+    body += `<tr><td class="col-label">${d}</td>`;
+    let rowTot=0;
+    years.forEach(y=>{
+      const v = mat[d][y]||0;
+      totalsByYear[y]+=v; rowTot+=v;
+      body += `<td class="col-val">${v>0?fmtPesos(v):'-'}</td>`;
+    });
+    grand+=rowTot;
+    body+=`<td class="col-val" style="font-weight:800">${rowTot>0?fmtPesos(rowTot):'-'}</td></tr>`;
+  });
+  body += `<tr class="total-row"><td>TOTAL</td>`;
+  years.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
+  body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
+  $('tblDivBody').innerHTML = body;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    VISTA 3: COMPONENTES                          ║
+// ║   Tabla: componentes × meses, solo año más reciente, ordenado    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderComponentes(){
+  // Año actual (si hay filtro AÑO usar ese, si no el más reciente disponible)
+  const allYears = [...new Set(applyFilters(rawData,['ANO']).map(r=>r._ano).filter(a=>a))].sort((a,b)=>a-b);
+  let yearCurrent;
+  if(filters.ANO.length>0) yearCurrent = Math.max(...filters.ANO.map(Number));
+  else yearCurrent = allYears[allYears.length-1];
+
+  // Datos del año actual (respetando filtros actuales)
+  const dataCurr = applyFilters(rawData).filter(r=>r._ano===yearCurrent);
+
+  // Matriz componente × mes
+  const mat = {};
+  dataCurr.forEach(r=>{
+    const c = r._comp || '(SIN COMPONENTE)';
+    if(!mat[c]){ mat[c]={}; for(let m=1;m<=12;m++) mat[c][m]=0; }
+    if(r._mes) mat[c][r._mes] += r._importe;
+  });
+
+  const rows = Object.keys(mat).map(c=>{
+    const total = Object.values(mat[c]).reduce((a,b)=>a+b,0);
+    return {comp:c, data:mat[c], total};
+  }).sort((a,b)=>b.total - a.total);
+
+  // Tabla
+  let thead = '<tr><th style="min-width:240px">COMPONENTE</th>';
+  MESES_CORTOS.forEach(m=>thead+=`<th>${m}</th>`);
+  thead+='<th>TOTAL</th></tr>';
+  $('tblCmpHead').innerHTML = thead;
+
+  let body = '';
+  const colTotals = new Array(12).fill(0);
+  let grand = 0;
+  rows.forEach(r=>{
+    body += `<tr><td class="col-label">${r.comp}</td>`;
+    for(let m=1; m<=12; m++){
+      const v = r.data[m]||0;
+      colTotals[m-1]+=v;
+      body += `<td class="col-val">${v>0?fmtPesos(v):'-'}</td>`;
+    }
+    grand += r.total;
+    body += `<td class="col-val" style="font-weight:800">${r.total>0?fmtPesos(r.total):'-'}</td></tr>`;
+  });
+  body += `<tr class="total-row"><td>TOTAL ${yearCurrent||''}</td>`;
+  colTotals.forEach(v=>body+=`<td style="text-align:center">${v>0?fmtPesos(v):'-'}</td>`);
+  body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
+  $('tblCmpBody').innerHTML = body;
+
+  // Actualizar subtítulo de la toolbar
+  const tb = document.querySelector('#v-componentes .tabla-toolbar span');
+  if(tb) tb.textContent = `Gasto por Componente — Año ${yearCurrent||'—'} (ordenado mayor a menor)`;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                    VISTA 4: JEFES DE TALLER                      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderJefes(){
+  const dataAll = applyFilters(rawData, ['ANO']);
+  const years = [...new Set(dataAll.map(r=>r._ano).filter(a=>a))].sort((a,b)=>a-b);
+  const jefes = [...new Set(dataAll.map(r=>r._jefe).filter(j=>j))].sort();
+
+  // Matriz jefe × año
+  const mat = {};
+  jefes.forEach(j=>{ mat[j]={}; years.forEach(y=>mat[j][y]=0); });
+  dataAll.forEach(r=>{
+    if(r._jefe && r._ano!=null) mat[r._jefe][r._ano] = (mat[r._jefe][r._ano]||0) + r._importe;
+  });
+
+  const sortedJefes = jefes.slice().sort((a,b)=>{
+    const sa = years.reduce((s,y)=>s+(mat[a][y]||0),0);
+    const sb = years.reduce((s,y)=>s+(mat[b][y]||0),0);
+    return sb - sa;
+  });
+
+  // Año actual / anterior
+  let yearCurrent;
+  if(filters.ANO.length>0) yearCurrent = Math.max(...filters.ANO.map(Number));
+  else yearCurrent = years[years.length-1];
+  const yearPrev = yearCurrent - 1;
+
+  // Limitar en la gráfica a los top N para legibilidad
+  const TOP_N = 15;
+  const jefesGrafica = sortedJefes.slice(0, TOP_N);
+  const labels = jefesGrafica.map(j=>j.length>22?j.substring(0,20)+'…':j);
+  const dataCurr = jefesGrafica.map(j=>mat[j][yearCurrent]||0);
+  const dataPrev = jefesGrafica.map(j=>mat[j][yearPrev]||0);
+
+  const datasets=[];
+  datasets.push({
+    type:'bar', label:`Año ${yearCurrent}`,
+    data:dataCurr, backgroundColor:'#C10230', stack:'s1', order:0
+  });
+  if(years.includes(yearPrev)){
+    datasets.push({
+      type:'line', label:`Año ${yearPrev}`,
+      data:dataPrev,
+      backgroundColor:'rgba(128,128,128,0.35)',
+      borderColor:'rgba(128,128,128,0)',
+      borderWidth:0, pointRadius:0, pointHoverRadius:0,
+      fill:true, tension:0, spanGaps:false, order:1
+    });
+  }
+
+  destroyChart('jef');
+  const cv = recreateCanvas('#v-jefes .chart-container','chartJef');
+  if(!cv) return;
+
+  charts.jef = new Chart(cv,{
+    data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{stacked:true, grid:{display:false}, ticks:{minRotation:60, font:{size:9}}},
+        y:{stacked:true, grid:{display:false}, beginAtZero:true,
+           ticks:{callback:v=>fmtCompact(v)}}
+      },
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{mode:'index', intersect:false,
+          callbacks:{
+            title:items=>{ const idx=items[0].dataIndex; return jefesGrafica[idx]; },
+            label:ctx=>`${ctx.dataset.label}: ${fmtPesos(ctx.raw)}`
+          }}
+      }
+    },
+    plugins:[stackedTotalsPlugin]
+  });
+
+  // Tabla jefe × años (todos los jefes)
+  let thead = '<tr><th style="min-width:260px">JEFE DE TALLER</th>';
+  years.forEach(y=>thead+=`<th>${y}</th>`);
+  thead+='<th>TOTAL</th></tr>';
+  $('tblJefHead').innerHTML = thead;
+
+  let body='';
+  const totalsByYear={}; years.forEach(y=>totalsByYear[y]=0);
+  let grand=0;
+  sortedJefes.forEach(j=>{
+    body += `<tr><td class="col-label">${j}</td>`;
+    let rowTot=0;
+    years.forEach(y=>{
+      const v = mat[j][y]||0;
+      totalsByYear[y]+=v; rowTot+=v;
+      body += `<td class="col-val">${v>0?fmtPesos(v):'-'}</td>`;
+    });
+    grand+=rowTot;
+    body+=`<td class="col-val" style="font-weight:800">${rowTot>0?fmtPesos(rowTot):'-'}</td></tr>`;
+  });
+  body += `<tr class="total-row"><td>TOTAL</td>`;
+  years.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
+  body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
+  $('tblJefBody').innerHTML = body;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                           KPIs                                   ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function updateKPIs(){
+  // Período actual (con todos los filtros aplicados)
+  const dataCurr = applyFilters(rawData);
+  const total = dataCurr.reduce((s,r)=>s+r._importe,0);
+
+  $('kpi1').textContent = fmtPesos(total);
+  $('kpi1Sub').textContent = fmtDate(filters.sd)+' — '+fmtDate(filters.ed);
+
+  // Año anterior mismo período
+  const sd = filters.sd ? new Date(filters.sd+'T00:00:00') : null;
+  const ed = filters.ed ? new Date(filters.ed+'T23:59:59') : null;
+  let totalPrev = 0;
+  if(sd && ed){
+    const sdP = new Date(sd); sdP.setFullYear(sdP.getFullYear()-1);
+    const edP = new Date(ed); edP.setFullYear(edP.getFullYear()-1);
+    // aplicar filtros excepto fecha, y filtrar manualmente por rango del año anterior
+    const baseData = applyFilters(rawData, ['DATE','ANO']);
+    const sdPts = sdP.getTime(), edPts = edP.getTime();
+    totalPrev = baseData.filter(r=>r._ts!=null && r._ts>=sdPts && r._ts<=edPts)
+                        .reduce((s,r)=>s+r._importe,0);
+  }
+
+  const varPct = totalPrev>0 ? ((total-totalPrev)/totalPrev)*100 : 0;
+  $('kpi2').innerHTML = makeDelta(varPct);
+  $('kpi2Sub').textContent = 'vs año anterior mismo período';
+
+  $('kpi3').textContent = fmtPesos(totalPrev);
+  $('kpi3Sub').textContent = 'Año anterior';
+
+  // Máximo y mínimo por mes-año
+  const byYM = {};
+  dataCurr.forEach(r=>{
+    if(r._ano==null||r._mes==null) return;
+    const k = r._ano+'-'+r._mes;
+    byYM[k] = (byYM[k]||0) + r._importe;
+  });
+  let maxV=0, minV=Infinity, keyMax='', keyMin='';
+  Object.entries(byYM).forEach(([k,v])=>{
+    if(v>0){
+      if(v>maxV){maxV=v; keyMax=k;}
+      if(v<minV){minV=v; keyMin=k;}
+    }
+  });
+  if(minV===Infinity) minV=0;
+  const fmtYM = k=>{ if(!k) return ''; const [y,m]=k.split('-'); return `${MESES_CORTOS[+m-1]} ${y}`; };
+
+  $('kpi4').textContent = fmtPesos(maxV);
+  $('kpi4Sub').textContent = keyMax ? fmtYM(keyMax) : '—';
+
+  $('kpi5').textContent = fmtPesos(minV);
+  $('kpi5Sub').textContent = keyMin ? fmtYM(keyMin) : '—';
+}
+
+function updateChartTitle(){
+  const titles = {
+    comprobaciones: 'GASTO DE COMPROBACIONES',
+    divisiones:     'GASTO POR DIVISIÓN',
+    componentes:    'GASTO POR COMPONENTE',
+    jefes:          'GASTO POR JEFE DE TALLER'
+  };
+  $('ctDash').textContent = titles[currentView] || 'GASTO DE COMPROBACIONES';
+  $('ctZone').textContent = filters.ZONA.length ? filters.ZONA.join(', ') : 'Todas las zonas';
+  $('ctInfo').textContent = fmtDate(filters.sd)+' → '+fmtDate(filters.ed);
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║                       Render principal                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function render(){
+  updateKPIs();
+  updateChartTitle();
+  if(currentView==='comprobaciones') renderComprobaciones();
+  else if(currentView==='divisiones') renderDivisiones();
+  else if(currentView==='componentes') renderComponentes();
+  else if(currentView==='jefes')       renderJefes();
+}
+
+// ── Descargar CSV ──
+function descargarCSV(tblId){
+  const tbl = $(tblId); if(!tbl) return;
+  const csv = '\uFEFF' + [...tbl.querySelectorAll('tr')].map(r=>
+    [...r.querySelectorAll('th,td')].map(c=>'"'+c.textContent.trim().replace(/"/g,'""')+'"').join(',')
+  ).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = (tblId+'_comprobaciones').replace(/[^a-z0-9]/gi,'_')+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+</script>
+</body>
+</html>
