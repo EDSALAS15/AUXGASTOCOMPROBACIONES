@@ -46,28 +46,28 @@ input[type="date"]{padding:1px 3px;border-radius:3px;border:1px solid #ccc;font-
 
 /* KPI Cards */
 .kpi-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.kpi-card{flex:1;min-width:140px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
-.kpi-label{font-size:9.5px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
-.kpi-value{font-size:20px;font-weight:800;color:#222;line-height:1.1}
-.kpi-sub{font-size:9.5px;color:#888;margin-top:2px}
+.kpi-card{flex:1;min-width:140px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;text-align:center}
+.kpi-label{font-size:9.5px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;text-align:center}
+.kpi-value{font-size:20px;font-weight:800;color:#222;line-height:1.1;text-align:center}
+.kpi-sub{font-size:9.5px;color:#888;margin-top:2px;text-align:center}
 .kpi-delta.up{color:#00B050}
 .kpi-delta.down{color:#C10230}
 .kpi-delta.flat{color:#888}
 
 /* Chart title */
 .chart-title{display:flex;gap:8px;align-items:center;margin:6px 0 8px 0;flex-wrap:wrap}
-.chart-title span{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;color:#fff}
+.chart-title span{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;color:#fff}
 .ct-dash{background:#333F48}
 .ct-zone{background:#C10230}
-.ct-info{background:transparent!important;color:#888!important;border:1px solid #ddd}
+.ct-info{background:transparent!important;color:#888!important;border:none!important;padding:4px 8px!important}
 
 /* Chart */
 .chart-container{position:relative;height:380px;margin-bottom:16px}
 
 /* Tabla */
 .tabla-wrap{background:#fff;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-top:10px}
-.tabla-toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f5f5f5;border-bottom:1px solid #e5e5e5}
-.tabla-toolbar span{font-size:12px;font-weight:700;color:#333}
+.tabla-toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#333F48;color:#fff;border-bottom:1px solid #333F48}
+.tabla-toolbar span{font-size:12px;font-weight:700;color:#fff}
 .btn-dl{background:#00882B;color:#fff;border:none;padding:5px 12px;cursor:pointer;border-radius:4px;font-size:10px;font-weight:700}
 .btn-dl:hover{background:#006d22}
 .tabla-scroll{overflow-x:auto}
@@ -125,18 +125,16 @@ table tr.total-row td{background:#333F48!important;color:#fff!important;font-wei
           <div class="filters-row">
             <div class="f-item"><label>AÑO</label><div class="multiselect" id="msANO">Todos...</div><div class="dropdown-content" id="optsANO"></div></div>
             <div class="f-item"><label>MES</label><div class="multiselect" id="msMES">Todos...</div><div class="dropdown-content" id="optsMES"></div></div>
-          </div>
-          <div class="filters-row">
             <div class="f-item"><label>ZONA</label><div class="multiselect" id="msZONA">Todos...</div><div class="dropdown-content" id="optsZONA"></div></div>
             <div class="f-item"><label>DIVISIÓN</label><div class="multiselect" id="msDIVISION">Todos...</div><div class="dropdown-content" id="optsDIVISION"></div></div>
             <div class="f-item"><label>ECONÓMICO</label><div class="multiselect" id="msECONOMICO">Todos...</div><div class="dropdown-content" id="optsECONOMICO"></div></div>
+            <button class="btn-clear" onclick="resetAll()">LIMPIAR FILTROS</button>
           </div>
           <div class="filters-row">
             <div class="f-item"><label>JEFE DE TALLER</label><div class="multiselect" id="msJEFE">Todos...</div><div class="dropdown-content" id="optsJEFE"></div></div>
             <div class="f-item"><label>CLASIFICACIÓN</label><div class="multiselect" id="msCLASIFICACION">Todos...</div><div class="dropdown-content" id="optsCLASIFICACION"></div></div>
             <div class="f-item"><label>SISTEMA</label><div class="multiselect" id="msSISTEMA">Todos...</div><div class="dropdown-content" id="optsSISTEMA"></div></div>
             <div class="f-item"><label>COMPONENTE</label><div class="multiselect" id="msCOMPONENTE">Todos...</div><div class="dropdown-content" id="optsCOMPONENTE"></div></div>
-            <button class="btn-clear" onclick="resetAll()">LIMPIAR FILTROS</button>
           </div>
         </div>
 
@@ -555,9 +553,10 @@ function renderComprobaciones(){
     plugins:[stackedTotalsPlugin]
   });
 
-  // === Tabla: meses en filas, años en columnas ===
+  // === Tabla: meses en filas, años en columnas (orden descendente: más nuevo a la izquierda) ===
+  const yearsTbl = years.slice().reverse();
   let thead = '<tr><th style="min-width:120px">MES</th>';
-  years.forEach(y=>thead+=`<th>${y}</th>`);
+  yearsTbl.forEach(y=>thead+=`<th>${y}</th>`);
   thead+='<th>TOTAL</th></tr>';
   $('tblCompHead').innerHTML = thead;
 
@@ -567,7 +566,7 @@ function renderComprobaciones(){
   for(let m=1; m<=12; m++){
     body += `<tr><td class="col-label">${MESES[m-1]}</td>`;
     let rowTot = 0;
-    years.forEach(y=>{
+    yearsTbl.forEach(y=>{
       const v = mat[m][y]||0;
       totalsByYear[y] += v;
       rowTot += v;
@@ -577,7 +576,7 @@ function renderComprobaciones(){
     body += `<td class="col-val" style="font-weight:800">${rowTot>0?fmtPesos(rowTot):'-'}</td></tr>`;
   }
   body += `<tr class="total-row"><td>TOTAL</td>`;
-  years.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
+  yearsTbl.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
   body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
   $('tblCompBody').innerHTML = body;
 }
@@ -668,9 +667,10 @@ function renderDivisiones(){
     plugins:[stackedTotalsPlugin]
   });
 
-  // Tabla div × años
+  // Tabla div × años (orden descendente: más nuevo a la izquierda)
+  const yearsTbl = years.slice().reverse();
   let thead = '<tr><th style="min-width:180px">DIVISIÓN</th>';
-  years.forEach(y=>thead+=`<th>${y}</th>`);
+  yearsTbl.forEach(y=>thead+=`<th>${y}</th>`);
   thead+='<th>TOTAL</th></tr>';
   $('tblDivHead').innerHTML = thead;
 
@@ -680,7 +680,7 @@ function renderDivisiones(){
   sortedDivs.forEach(d=>{
     body += `<tr><td class="col-label">${d}</td>`;
     let rowTot=0;
-    years.forEach(y=>{
+    yearsTbl.forEach(y=>{
       const v = mat[d][y]||0;
       totalsByYear[y]+=v; rowTot+=v;
       body += `<td class="col-val">${v>0?fmtPesos(v):'-'}</td>`;
@@ -689,7 +689,7 @@ function renderDivisiones(){
     body+=`<td class="col-val" style="font-weight:800">${rowTot>0?fmtPesos(rowTot):'-'}</td></tr>`;
   });
   body += `<tr class="total-row"><td>TOTAL</td>`;
-  years.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
+  yearsTbl.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
   body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
   $('tblDivBody').innerHTML = body;
 }
@@ -837,9 +837,10 @@ function renderJefes(){
     plugins:[stackedTotalsPlugin]
   });
 
-  // Tabla jefe × años (todos los jefes)
+  // Tabla jefe × años (todos los jefes, orden descendente: más nuevo a la izquierda)
+  const yearsTbl = years.slice().reverse();
   let thead = '<tr><th style="min-width:260px">JEFE DE TALLER</th>';
-  years.forEach(y=>thead+=`<th>${y}</th>`);
+  yearsTbl.forEach(y=>thead+=`<th>${y}</th>`);
   thead+='<th>TOTAL</th></tr>';
   $('tblJefHead').innerHTML = thead;
 
@@ -849,7 +850,7 @@ function renderJefes(){
   sortedJefes.forEach(j=>{
     body += `<tr><td class="col-label">${j}</td>`;
     let rowTot=0;
-    years.forEach(y=>{
+    yearsTbl.forEach(y=>{
       const v = mat[j][y]||0;
       totalsByYear[y]+=v; rowTot+=v;
       body += `<td class="col-val">${v>0?fmtPesos(v):'-'}</td>`;
@@ -858,7 +859,7 @@ function renderJefes(){
     body+=`<td class="col-val" style="font-weight:800">${rowTot>0?fmtPesos(rowTot):'-'}</td></tr>`;
   });
   body += `<tr class="total-row"><td>TOTAL</td>`;
-  years.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
+  yearsTbl.forEach(y=>body+=`<td style="text-align:center">${fmtPesos(totalsByYear[y])}</td>`);
   body += `<td style="text-align:center">${fmtPesos(grand)}</td></tr>`;
   $('tblJefBody').innerHTML = body;
 }
