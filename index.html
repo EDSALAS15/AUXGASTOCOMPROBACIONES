@@ -16,7 +16,7 @@ body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--gris);margin:0;di
 .header-logo{width:var(--side-w);background:#fefefe;display:flex;align-items:center;justify-content:center;padding:10px 16px;flex-shrink:0}
 .header-logo img{height:42px;object-fit:contain;width:100%}
 .header-title{flex:1;background:#E4002B;color:#fff;display:flex;align-items:center;justify-content:center;padding:14px 24px}
-.header-title h2{margin:0;font-size:16px;letter-spacing:.5px}
+.header-title h2{margin:0;font-size:16px;letter-spacing:.5px;text-transform:uppercase}
 .app-body{display:flex;flex:1}
 .sidebar{width:var(--side-w);background:var(--side-bg);min-height:calc(100vh - 52px);flex-shrink:0;overflow-y:auto}
 .nav-group{border-bottom:1px solid #3a4a55}
@@ -46,10 +46,10 @@ input[type="date"]{padding:1px 3px;border-radius:3px;border:1px solid #ccc;font-
 
 /* KPI Cards */
 .kpi-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.kpi-card{flex:1;min-width:140px;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;text-align:center}
-.kpi-label{font-size:9.5px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;text-align:center}
-.kpi-value{font-size:20px;font-weight:800;color:#222;line-height:1.1;text-align:center}
-.kpi-sub{font-size:9.5px;color:#888;margin-top:2px;text-align:center}
+.kpi-card{flex:1;min-width:140px;background:#FFFFFF;border:1px solid #e5e5e5;border-radius:10px;padding:10px 12px;min-height:90px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.kpi-label{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;text-align:center}
+.kpi-value{font-size:22px;font-weight:800;color:#333F48;line-height:1.1;text-align:center}
+.kpi-sub{font-size:10px;color:#888;margin-top:2px;text-align:center}
 .kpi-delta.up{color:#00B050}
 .kpi-delta.down{color:#C10230}
 .kpi-delta.flat{color:#888}
@@ -58,7 +58,7 @@ input[type="date"]{padding:1px 3px;border-radius:3px;border:1px solid #ccc;font-
 .chart-title{display:flex;gap:8px;align-items:center;margin:6px 0 8px 0;flex-wrap:wrap}
 .chart-title span{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;color:#fff}
 .ct-dash{background:#333F48}
-.ct-zone{background:#E4002B}
+.ct-zone{background:#E4002B;border-radius:20px}
 .ct-info{background:#4A4847;color:#fff}
 
 /* Chart */
@@ -516,7 +516,7 @@ function renderComprobaciones(){
   // Barras (año actual) — orden 0 para que queden encima
   datasets.push({
     type:'bar', label:`Año ${yearCurrent}`,
-    data: dataCurr, backgroundColor:'#880015', stack:'s1', order:0
+    data: dataCurr, backgroundColor:'#880015', borderColor:'#D5000E', borderWidth:1, stack:'s1', order:0
   });
   // Área (año anterior) — orden 1 para que quede detrás, sin bordes ni puntos, líneas rectas
   if(years.includes(yearPrev)){
@@ -616,7 +616,7 @@ function renderDivisiones(){
   const datasets=[];
   datasets.push({
     type:'bar', label:`Año ${yearCurrent}`,
-    data:dataCurr, backgroundColor:'#880015', stack:'s1', order:0
+    data:dataCurr, backgroundColor:'#880015', borderColor:'#D5000E', borderWidth:1, stack:'s1', order:0
   });
   if(years.includes(yearPrev)){
     datasets.push({
@@ -787,7 +787,7 @@ function renderJefes(){
   const datasets=[];
   datasets.push({
     type:'bar', label:`Año ${yearCurrent}`,
-    data:dataCurr, backgroundColor:'#880015', stack:'s1', order:0
+    data:dataCurr, backgroundColor:'#880015', borderColor:'#D5000E', borderWidth:1, stack:'s1', order:0
   });
   if(years.includes(yearPrev)){
     datasets.push({
@@ -977,13 +977,10 @@ function render(){
 // ── Descargar CSV ──
 function descargarCSV(tblId){
   const tbl = $(tblId); if(!tbl) return;
-  const csv = '\uFEFF' + [...tbl.querySelectorAll('tr')].map(r=>
-    [...r.querySelectorAll('th,td')].map(c=>'"'+c.textContent.trim().replace(/"/g,'""')+'"').join(',')
-  ).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download = (tblId+'_comprobaciones').replace(/[^a-z0-9]/gi,'_')+'.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  // Convertir tabla HTML a hoja de Excel y descargar como .xlsx
+  const wb = XLSX.utils.table_to_book(tbl, {sheet:'Datos'});
+  const fname = (tblId+'_comprobaciones').replace(/[^a-z0-9]/gi,'_')+'.xlsx';
+  XLSX.writeFile(wb, fname);
 }
 </script>
 </body>
