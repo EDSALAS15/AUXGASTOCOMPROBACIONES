@@ -145,6 +145,7 @@ table tr.total-row td{background:#333F48!important;color:#fff!important;font-wei
           <div class="kpi-card"><div class="kpi-label">Año anterior mismo período</div><div class="kpi-value" id="kpi3">—</div><div class="kpi-sub" id="kpi3Sub"></div></div>
           <div class="kpi-card"><div class="kpi-label">Máximo del período</div><div class="kpi-value" id="kpi4">—</div><div class="kpi-sub" id="kpi4Sub"></div></div>
           <div class="kpi-card"><div class="kpi-label">Mínimo del período</div><div class="kpi-value" id="kpi5">—</div><div class="kpi-sub" id="kpi5Sub"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Promedio mensual</div><div class="kpi-value" id="kpi6">—</div><div class="kpi-sub" id="kpi6Sub"></div></div>
         </div>
 
         <div class="chart-title">
@@ -925,6 +926,12 @@ function updateKPIs(){
 
   $('kpi5').textContent = fmtPesos(minV);
   $('kpi5Sub').textContent = keyMin ? fmtYM(keyMin) : '—';
+
+  // KPI 6: Promedio mensual (total ÷ meses con actividad)
+  const mesesConActividad = Object.values(byYM).filter(v=>v>0).length;
+  const promMensual = mesesConActividad > 0 ? total / mesesConActividad : 0;
+  $('kpi6').textContent = fmtPesos(promMensual);
+  $('kpi6Sub').textContent = mesesConActividad > 0 ? `${mesesConActividad} mes${mesesConActividad!==1?'es':''} con actividad` : '—';
 }
 
 function updateChartTitle(){
