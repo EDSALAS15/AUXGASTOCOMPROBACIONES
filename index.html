@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root{
-  --rojo:#C10230;--gris:#F4F4F4;--azul:#0071C1;--verde:#00B050;
+  --rojo:#E4002B;--gris:#F4F4F4;--azul:#0071C1;--verde:#00B050;
   --side-w:220px;--side-bg:#333F48;--side-grp:#263038;--side-txt:#ccc;
 }
 *{box-sizing:border-box}
@@ -46,12 +46,12 @@ input[type="date"]{padding:1px 3px;border-radius:3px;border:1px solid #ccc;font-
 
 /* KPI Cards */
 .kpi-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.kpi-card{flex:1;min-width:140px;background:#F9F9F9;border:1px solid #e5e5e5;border-radius:10px;padding:10px 12px;min-height:90px;box-shadow:0 2px 6px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.kpi-card{flex:1;min-width:140px;background:#F9F9F9;border:1px solid #e5e5e5;border-radius:10px;padding:12px 16px;min-height:90px;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center}
 .kpi-label{font-size:9px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;text-align:center}
-.kpi-value{font-size:22px;font-weight:800;color:#333F48;line-height:1.1;text-align:center}
+.kpi-value{font-size:22px;font-weight:800;color:#333F48;line-height:1;text-align:center}
 .kpi-sub{font-size:10px;color:#888;margin-top:2px;text-align:center}
 .kpi-delta.up{color:#00B050}
-.kpi-delta.down{color:#C10230}
+.kpi-delta.down{color:#E4002B}
 .kpi-delta.flat{color:#888}
 
 /* Chart title */
